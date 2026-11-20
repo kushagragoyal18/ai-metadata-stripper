@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy — AI Metadata Stripper</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --ink: #171717;
+            --secondary: #525252;
+            --line: rgba(23, 23, 23, 0.08);
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+            font-size: 15px;
+            line-height: 22px;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .nav {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .wordmark {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            line-height: 16px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+            text-decoration: none;
+        }
+
+        .mark-logo { width: 16px; height: 16px; display: block; }
+
+        .nav a.quiet {
+            color: var(--secondary);
+            text-decoration: none;
+            font-size: 14px;
+            line-height: 20px;
+            padding: 8px 4px;
+            transition: color 160ms var(--ease);
+        }
+
+        .nav a.quiet:hover { color: var(--ink); }
+
+        a:focus-visible {
+            outline: 2px solid var(--ink);
+            outline-offset: 3px;
+        }
+
+        main {
+            width: min(640px, 100%);
+            margin: 0 auto;
+            padding: 80px 32px 96px;
+            animation: rise 420ms var(--ease) both;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        h1 {
+            font-size: 40px;
+            line-height: 1.05;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            margin-bottom: 32px;
+        }
+
+        p + p { margin-top: 16px; }
+
+        p { color: var(--secondary); max-width: 36rem; }
+
+        @media (max-width: 640px) {
+            .nav { padding: 0 20px; }
+            main { padding: 48px 20px 64px; }
+            h1 { font-size: 36px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            main { animation: none; }
+            .nav a.quiet { transition: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="nav">
+        <a class="wordmark" href="/">
+            <svg class="mark-logo" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            AI Metadata Stripper
+        </a>
+        <a class="quiet" href="/">Back</a>
+    </header>
+    <main>
+        <h1>Privacy</h1>
+        <p>A photo is held only while it is processed. The original is deleted as soon as the result is ready, and the result is deleted as soon as it is downloaded.</p>
+        <p>Nothing is kept after that. There is no account, no gallery, and no copy stored for later.</p>
+        <p>The file is handled on the machine running this app. It is not sent to another service.</p>
+    </main>
+</body>
+</html>

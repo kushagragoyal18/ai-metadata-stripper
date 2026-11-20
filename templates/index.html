@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Metadata Stripper</title>
+    <style>
+        :root {
+            --bg: #ececef;
+            --mat: #d8d8de;
+            --card: #ffffff;
+            --ink: #1d1d1f;
+            --secondary: #6e6e73;
+            --muted: #86868b;
+            --line: rgba(29, 29, 31, 0.08);
+            --danger: #dc2626;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+            font-size: 15px;
+            line-height: 20px;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .nav {
+            height: 56px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .wordmark {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--ink);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        .mark-logo {
+            width: 16px;
+            height: 16px;
+            display: block;
+        }
+
+        .nav a.quiet {
+            color: var(--secondary);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 4px;
+            transition: color 160ms var(--ease);
+        }
+
+        .nav a.quiet:hover { color: var(--ink); }
+
+        main {
+            flex: 1;
+            min-height: 0;
+            padding: 0 16px 16px;
+        }
+
+        .viewer {
+            position: relative;
+            height: 100%;
+            border-radius: 20px;
+            background: var(--mat);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65), inset 0 0 0 1px var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background-color 180ms var(--ease);
+        }
+
+        body.drag .viewer { background: #d9d9df; }
+
+        .empty {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            animation: rise 420ms var(--ease) both;
+        }
+
+        .plate {
+            position: relative;
+            width: 640px;
+            max-width: calc(100% - 48px);
+            min-height: 420px;
+            max-height: calc(100% - 32px);
+            padding: 48px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 16px;
+            background: #f6f6f8;
+            border-radius: 2px;
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.12);
+        }
+
+        body.has-file .empty { display: none; }
+
+        h1 {
+            font-size: 48px;
+            line-height: 1.05;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+        }
+
+        .formats {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 16px;
+            font-variant-numeric: tabular-nums;
+            margin-top: -8px;
+        }
+
+        button, .download {
+            height: 48px;
+            padding: 0 22px;
+            border-radius: 10px;
+            border: 0;
+            background: var(--ink);
+            color: #fff;
+            font: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 160ms var(--ease), color 160ms var(--ease), transform 120ms var(--ease);
+        }
+
+        button:hover, .download:hover { background: #333336; }
+        button:active, .download:active { transform: scale(0.98); }
+
+        button:focus-visible, .download:focus-visible, a:focus-visible {
+            outline: 2px solid var(--ink);
+            outline-offset: 3px;
+        }
+
+        .ghost {
+            background: transparent;
+            color: var(--secondary);
+            height: 40px;
+            padding: 0 12px;
+        }
+
+        .ghost:hover { background: transparent; color: var(--ink); }
+
+        input { display: none; }
+
+        .print {
+            display: none;
+            position: relative;
+            max-width: calc(100% - 80px);
+            max-height: calc(100% - 128px);
+        }
+
+        body.has-file .print {
+            display: block;
+            animation: rise 420ms var(--ease) both;
+        }
+
+        .print img {
+            display: block;
+            max-width: min(920px, 100%);
+            max-height: calc(100vh - 220px);
+            width: auto;
+            height: auto;
+            border-radius: 2px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.14);
+            background: #fff;
+        }
+
+        .corner {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-color: var(--ink);
+            border-style: solid;
+            pointer-events: none;
+        }
+
+        .corner.tl { top: -10px; left: -10px; border-width: 1px 0 0 1px; }
+        .corner.tr { top: -10px; right: -10px; border-width: 1px 1px 0 0; }
+        .corner.bl { bottom: -10px; left: -10px; border-width: 0 0 1px 1px; }
+        .corner.br { bottom: -10px; right: -10px; border-width: 0 1px 1px 0; }
+
+        .veil {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(227, 227, 232, 0.72);
+            font-size: 40px;
+            line-height: 1.05;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+        }
+
+        body.drag .veil { display: flex; }
+
+        .progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        body.busy .progress { opacity: 1; }
+
+        .progress span {
+            display: block;
+            height: 100%;
+            width: 28%;
+            background: var(--ink);
+            transform: translateX(-120%);
+        }
+
+        body.busy .progress span {
+            animation: load 1s var(--ease) infinite;
+        }
+
+        @keyframes load {
+            to { transform: translateX(420%); }
+        }
+
+        .dock {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            height: 64px;
+            padding: 0 12px 0 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), inset 0 0 0 1px var(--line);
+        }
+
+        body.has-file .dock {
+            display: flex;
+            animation: rise 320ms var(--ease) both;
+        }
+
+        .name {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sub {
+            margin-top: 2px;
+            color: var(--muted);
+            font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+            font-size: 12px;
+            line-height: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sub.bad { color: var(--danger); }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .download[hidden], .ghost[hidden] { display: none; }
+
+        .meta { min-width: 0; }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 700px) {
+            body { overflow: auto; }
+            h1 { font-size: 36px; white-space: normal; }
+            .plate { min-height: 380px; width: calc(100% - 32px); }
+            .print { max-width: calc(100% - 40px); }
+            .print img { max-height: calc(100vh - 260px); }
+            .dock { height: auto; min-height: 64px; padding: 12px; flex-wrap: wrap; }
+            .veil { font-size: 32px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .empty, .print, .dock, .progress span, button, .download, .nav a.quiet, .viewer {
+                animation: none;
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="nav">
+        <a class="wordmark" href="/">
+            <svg class="mark-logo" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            AI Metadata Stripper
+        </a>
+        <a class="quiet" href="/privacy">Privacy</a>
+    </header>
+
+    <main>
+        <section class="viewer" id="viewer">
+            <div class="progress" aria-hidden="true"><span></span></div>
+
+            <div class="empty">
+                <div class="plate">
+                    <span class="corner tl" aria-hidden="true"></span>
+                    <span class="corner tr" aria-hidden="true"></span>
+                    <span class="corner bl" aria-hidden="true"></span>
+                    <span class="corner br" aria-hidden="true"></span>
+                    <h1>Drop a photo</h1>
+                    <p class="formats">JPG, PNG, WEBP, TIFF, GIF</p>
+                    <button id="choose" type="button">Choose a photo</button>
+                    <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/tiff,image/gif">
+                </div>
+            </div>
+
+            <div class="print" id="print">
+                <span class="corner tl" aria-hidden="true"></span>
+                <span class="corner tr" aria-hidden="true"></span>
+                <span class="corner bl" aria-hidden="true"></span>
+                <span class="corner br" aria-hidden="true"></span>
+                <img id="preview" alt="">
+            </div>
+
+            <div class="veil">Release</div>
+
+            <div class="dock">
+                <div class="meta">
+                    <p class="name" id="name"></p>
+                    <p class="sub" id="sub"></p>
+                </div>
+                <div class="actions">
+                    <button class="ghost" id="again" type="button" hidden>Another</button>
+                    <a class="download" id="download" hidden>Download</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const choose = document.getElementById('choose');
+        const input = document.getElementById('file');
+        const preview = document.getElementById('preview');
+        const nameEl = document.getElementById('name');
+        const subEl = document.getElementById('sub');
+        const again = document.getElementById('again');
+        const download = document.getElementById('download');
+
+        const types = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'image/gif'];
+        let objectUrl = null;
+        let job = 0;
+
+        function sizeLabel(bytes) {
+            if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function setSub(text, bad) {
+            subEl.textContent = text;
+            subEl.classList.toggle('bad', bad);
+        }
+
+        choose.addEventListener('click', () => input.click());
+
+        function reset() {
+            job += 1;
+            document.body.classList.remove('has-file', 'busy');
+            again.hidden = true;
+            download.hidden = true;
+            preview.removeAttribute('src');
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = null;
+            }
+            input.value = '';
+        }
+
+        async function run(file) {
+            const id = ++job;
+            const okType = types.includes(file.type) || /\.(jpe?g|png|webp|tiff?|gif)$/i.test(file.name);
+            document.body.classList.add('has-file');
+            document.body.classList.remove('busy');
+            nameEl.textContent = file.name;
+            again.hidden = true;
+            download.hidden = true;
+
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            if (okType) {
+                objectUrl = URL.createObjectURL(file);
+                preview.src = objectUrl;
+                preview.alt = file.name;
+            } else {
+                preview.removeAttribute('src');
+            }
+
+            if (!okType) {
+                setSub('Use a JPG, PNG, WEBP, TIFF, or GIF', true);
+                again.hidden = false;
+                return;
+            }
+            if (file.size > 20 * 1024 * 1024) {
+                setSub('Under 20 MB', true);
+                again.hidden = false;
+                return;
+            }
+
+            setSub(sizeLabel(file.size), false);
+            document.body.classList.add('busy');
+
+            const body = new FormData();
+            body.append('file', file);
+
+            try {
+                const response = await fetch('/strip', { method: 'POST', body });
+                const data = await response.json();
+                if (id !== job) return;
+                document.body.classList.remove('busy');
+                if (!response.ok || !data.success) {
+                    setSub(data.error || 'Could not strip this photo', true);
+                    again.hidden = false;
+                    return;
+                }
+                setSub('Ready  ' + sizeLabel(data.size), false);
+                download.href = '/download/' + data.download_id;
+                download.setAttribute('download', data.filename);
+                download.hidden = false;
+                again.hidden = false;
+            } catch (err) {
+                if (id !== job) return;
+                document.body.classList.remove('busy');
+                setSub('Could not strip this photo', true);
+                again.hidden = false;
+            }
+        }
+
+        input.addEventListener('change', () => {
+            if (input.files[0]) run(input.files[0]);
+        });
+
+        let depth = 0;
+        window.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            depth += 1;
+            document.body.classList.add('drag');
+        });
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('dragleave', () => {
+            depth -= 1;
+            if (depth <= 0) {
+                depth = 0;
+                document.body.classList.remove('drag');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            depth = 0;
+            document.body.classList.remove('drag');
+            if (e.dataTransfer.files[0]) run(e.dataTransfer.files[0]);
+        });
+
+        again.addEventListener('click', reset);
+    </script>
+</body>
+</html>
