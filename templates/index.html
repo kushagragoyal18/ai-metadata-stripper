@@ -388,6 +388,7 @@
 
         const types = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'image/gif'];
         let objectUrl = null;
+        let cleanedUrl = null;
         let job = 0;
 
         function sizeLabel(bytes) {
@@ -411,6 +412,10 @@
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
                 objectUrl = null;
+            }
+            if (cleanedUrl) {
+                URL.revokeObjectURL(cleanedUrl);
+                cleanedUrl = null;
             }
             input.value = '';
         }
@@ -452,19 +457,28 @@
 
             try {
                 const response = await fetch('/strip', { method: 'POST', body });
-                const data = await response.json();
                 if (id !== job) return;
                 document.body.classList.remove('busy');
-                if (!response.ok || !data.success) {
-                    setSub(data.error || 'Could not strip this photo', true);
+                if (!response.ok) {
+                    let message = 'Could not strip this photo';
+                    try {
+                        const data = await response.json();
+                        if (data.error) message = data.error;
+                    } catch (parseError) {}
+                    setSub(message, true);
                     again.hidden = false;
                     return;
                 }
-                setSub('Ready  ' + sizeLabel(data.size), false);
-                download.href = '/download/' + data.download_id;
-                download.setAttribute('download', data.filename);
+                const blob = await response.blob();
+                if (cleanedUrl) URL.revokeObjectURL(cleanedUrl);
+                cleanedUrl = URL.createObjectURL(blob);
+                const disposition = response.headers.get('Content-Disposition') || '';
+                const named = /filename=\"?([^\";]+)\"?/i.exec(disposition);
+                download.href = cleanedUrl;
+                download.setAttribute('download', named ? named[1] : 'cleaned_' + file.name);
                 download.hidden = false;
                 again.hidden = false;
+                setSub('Ready  ' + sizeLabel(blob.size), false);
             } catch (err) {
                 if (id !== job) return;
                 document.body.classList.remove('busy');
